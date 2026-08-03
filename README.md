@@ -9,17 +9,17 @@ A full-stack web application for managing trekking operations, bookings, staff, 
 ### Login Page
 ![Login](screenshots/login.png)
 
-### Register Page
-![Register](screenshots/register.png)
-
 ### Trekker Dashboard
 ![Trekker Dashboard](screenshots/trekker-dashboard.png)
 
-### Admin Dashboard
-![Admin Dashboard](screenshots/admin-dashboard.png)
+### Browse Treks
+![Browse Treks](screenshots/browse-treks.png)
 
 ### Staff Dashboard
 ![Staff Dashboard](screenshots/staff-dashboard.png)
+
+### Admin Dashboard
+![Admin Dashboard](screenshots/admin-dashboard.png)
 
 ---
 
