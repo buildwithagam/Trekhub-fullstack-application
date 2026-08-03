@@ -81,6 +81,38 @@
             </span>
           </button>
 
+          <!-- Role Switcher -->
+          <div class="relative" ref="roleSwitcherRef">
+            <button @click="showRoleSwitcher = !showRoleSwitcher"
+              class="flex items-center gap-2 border border-green-200 bg-green-50 hover:bg-green-100 text-green-700 font-semibold px-3 py-2 rounded-xl text-xs transition-all">
+              <span>🔄</span>
+              Switch Role
+              <svg class="w-3.5 h-3.5 transition-transform" :class="showRoleSwitcher ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+            <div v-if="showRoleSwitcher"
+              class="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden">
+              <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Demo — Switch Dashboard</p>
+              </div>
+              <div class="divide-y divide-gray-50">
+                <button v-for="r in demoRoles" :key="r.role"
+                  @click="switchRole(r)"
+                  class="w-full flex items-center gap-3 px-4 py-3 hover:bg-green-50 transition-colors text-left group"
+                  :class="r.current ? 'bg-green-50' : ''">
+                  <span class="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0" :class="r.bg">{{ r.icon }}</span>
+                  <div class="flex-1">
+                    <p class="text-sm font-semibold text-gray-900">{{ r.label }}</p>
+                    <p class="text-xs text-gray-400">{{ r.email }}</p>
+                  </div>
+                  <span v-if="r.current" class="text-xs font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">Active</span>
+                  <span v-if="switchingRole" class="text-xs text-gray-400">...</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- User -->
           <div class="flex items-center gap-2.5 pl-3 border-l border-gray-200">
             <div class="w-9 h-9 rounded-full bg-green-700 flex items-center justify-center text-white font-bold text-sm shadow overflow-hidden">
@@ -558,6 +590,12 @@ import { Chart, LineElement, PointElement, LineController, CategoryScale, Linear
 import api from '../services/api';
 import store from '../store';
 
+const DEMO_CREDS = {
+  TREKKER: { email: 'trekker@tma.com', password: 'pass123' },
+  STAFF:   { email: 'staff@tma.com',   password: 'pass123' },
+  ADMIN:   { email: 'admin@tma.com',   password: 'pass123' },
+};
+
 Chart.register(LineElement, PointElement, LineController, CategoryScale, LinearScale, Filler, Tooltip, ArcElement, DoughnutController);
 
 const TREK_IMAGES = [
@@ -602,6 +640,40 @@ export default {
     const router = useRouter();
     const activeTab = ref('dashboard');
     const sidebarOpen = ref(false);
+    const showRoleSwitcher = ref(false);
+    const switchingRole = ref(false);
+    const roleSwitcherRef = ref(null);
+
+    const demoRoles = computed(() => [
+      { role: 'TREKKER', label: 'Trekker',  email: 'trekker@tma.com', icon: '🥾', bg: 'bg-green-100',  current: user.value?.role === 'TREKKER' },
+      { role: 'STAFF',   label: 'Staff',    email: 'staff@tma.com',   icon: '🧑‍💼', bg: 'bg-orange-100', current: user.value?.role === 'STAFF'   },
+      { role: 'ADMIN',   label: 'Admin',    email: 'admin@tma.com',   icon: '🛡',  bg: 'bg-red-100',    current: user.value?.role === 'ADMIN'   },
+    ]);
+
+    const switchRole = async (r) => {
+      if (r.current || switchingRole.value) return;
+      switchingRole.value = true;
+      showRoleSwitcher.value = false;
+      try {
+        const creds = DEMO_CREDS[r.role];
+        const res = await api.post('/api/auth/login', creds);
+        store.login(res.data.user, res.data.access_token, res.data.refresh_token);
+        if (r.role === 'ADMIN')  router.push({ name: 'AdminDashboard' });
+        else if (r.role === 'STAFF') router.push({ name: 'StaffDashboard' });
+        else router.push({ name: 'TrekkerDashboard' });
+      } catch (e) {
+        window.triggerToast('Failed to switch role', 'error');
+      } finally {
+        switchingRole.value = false;
+      }
+    };
+
+    // Close dropdown when clicking outside
+    const handleClickOutside = (e) => {
+      if (roleSwitcherRef.value && !roleSwitcherRef.value.contains(e.target)) {
+        showRoleSwitcher.value = false;
+      }
+    };
     const openTreks = ref([]);
     const bookings = ref([]);
     const notifications = ref([]);
@@ -802,6 +874,7 @@ export default {
       await loadBookings();
       await loadNotifications();
       buildCharts();
+      document.addEventListener('click', handleClickOutside);
       pollInterval = setInterval(() => {
         loadOpenTreks(); loadBookings(); loadNotifications();
       }, 15000);
@@ -810,10 +883,12 @@ export default {
       if (pollInterval) clearInterval(pollInterval);
       if (lineChart) lineChart.destroy();
       if (donutChart) donutChart.destroy();
+      document.removeEventListener('click', handleClickOutside);
     });
 
     return {
-      activeTab, sidebarOpen, openTreks, bookings, notifications, selectedTrek,
+      activeTab, sidebarOpen, showRoleSwitcher, switchingRole, roleSwitcherRef, demoRoles, switchRole,
+      openTreks, bookings, notifications, selectedTrek,
       bookingRemarks, showBookingModal, lineChartRef, donutChartRef,
       filters, profileForm, passwordResetForm,
       user, unreadCount, upcomingBookings, completedCount, cancelledCount, totalSpent,
