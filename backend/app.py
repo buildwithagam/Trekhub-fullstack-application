@@ -46,7 +46,7 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
     
     # Enable CORS — allow local dev + Vercel/Netlify production frontend
-    allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:8080,http://127.0.0.1:8080')
+    allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:8080,http://127.0.0.1:8080,https://trekhub-fullstack-application.onrender.com')
     CORS(app, origins=[o.strip() for o in allowed_origins.split(',')])
     
     # Initialize extensions
