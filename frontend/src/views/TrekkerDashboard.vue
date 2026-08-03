@@ -83,10 +83,11 @@
 
           <!-- Role Switcher -->
           <div class="relative" ref="roleSwitcherRef">
-            <button @click="showRoleSwitcher = !showRoleSwitcher"
-              class="flex items-center gap-2 border border-green-200 bg-green-50 hover:bg-green-100 text-green-700 font-semibold px-3 py-2 rounded-xl text-xs transition-all">
-              <span>🔄</span>
-              Switch Role
+            <button @click="showRoleSwitcher = !showRoleSwitcher" :disabled="switchingRole"
+              class="flex items-center gap-2 border border-green-200 bg-green-50 hover:bg-green-100 text-green-700 font-semibold px-3 py-2 rounded-xl text-xs transition-all disabled:opacity-60">
+              <svg v-if="switchingRole" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              <span v-else>🔄</span>
+              {{ switchingRole ? 'Switching…' : 'Switch Role' }}
               <svg class="w-3.5 h-3.5 transition-transform" :class="showRoleSwitcher ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
               </svg>
@@ -589,12 +590,7 @@ import { useRouter } from 'vue-router';
 import { Chart, LineElement, PointElement, LineController, CategoryScale, LinearScale, Filler, Tooltip, ArcElement, DoughnutController } from 'chart.js';
 import api from '../services/api';
 import store from '../store';
-
-const DEMO_CREDS = {
-  TREKKER: { email: 'trekker@tma.com', password: 'pass123' },
-  STAFF:   { email: 'staff@tma.com',   password: 'pass123' },
-  ADMIN:   { email: 'admin@tma.com',   password: 'pass123' },
-};
+import { DEMO_ROLES, switchToRole } from '../services/roleSwitcher';
 
 Chart.register(LineElement, PointElement, LineController, CategoryScale, LinearScale, Filler, Tooltip, ArcElement, DoughnutController);
 
@@ -644,31 +640,19 @@ export default {
     const switchingRole = ref(false);
     const roleSwitcherRef = ref(null);
 
-    const demoRoles = computed(() => [
-      { role: 'TREKKER', label: 'Trekker',  email: 'trekker@tma.com', icon: '🥾', bg: 'bg-green-100',  current: user.value?.role === 'TREKKER' },
-      { role: 'STAFF',   label: 'Staff',    email: 'staff@tma.com',   icon: '🧑‍💼', bg: 'bg-orange-100', current: user.value?.role === 'STAFF'   },
-      { role: 'ADMIN',   label: 'Admin',    email: 'admin@tma.com',   icon: '🛡',  bg: 'bg-red-100',    current: user.value?.role === 'ADMIN'   },
-    ]);
+    const demoRoles = computed(() =>
+      DEMO_ROLES.map(r => ({ ...r, current: user.value?.role === r.role }))
+    );
 
     const switchRole = async (r) => {
       if (r.current || switchingRole.value) return;
       switchingRole.value = true;
       showRoleSwitcher.value = false;
-      try {
-        const creds = DEMO_CREDS[r.role];
-        const res = await api.post('/api/auth/login', creds);
-        store.login(res.data.user, res.data.access_token, res.data.refresh_token);
-        if (r.role === 'ADMIN')  router.push({ name: 'AdminDashboard' });
-        else if (r.role === 'STAFF') router.push({ name: 'StaffDashboard' });
-        else router.push({ name: 'TrekkerDashboard' });
-      } catch (e) {
-        window.triggerToast('Failed to switch role', 'error');
-      } finally {
-        switchingRole.value = false;
-      }
+      const ok = await switchToRole(r.role, router);
+      if (!ok) window.triggerToast('Failed to switch — backend may be waking up, try again in 30s', 'error');
+      switchingRole.value = false;
     };
 
-    // Close dropdown when clicking outside
     const handleClickOutside = (e) => {
       if (roleSwitcherRef.value && !roleSwitcherRef.value.contains(e.target)) {
         showRoleSwitcher.value = false;

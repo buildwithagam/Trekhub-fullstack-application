@@ -57,9 +57,11 @@
         <div class="flex items-center gap-3 ml-auto">
           <!-- Role Switcher -->
           <div class="relative" ref="roleSwitcherRef">
-            <button @click="showRoleSwitcher = !showRoleSwitcher"
-              class="flex items-center gap-2 border border-green-200 bg-green-50 hover:bg-green-100 text-green-700 font-semibold px-3 py-2 rounded-xl text-xs transition-all">
-              <span>🔄</span> Switch Role
+            <button @click="showRoleSwitcher = !showRoleSwitcher" :disabled="switchingRole"
+              class="flex items-center gap-2 border border-green-200 bg-green-50 hover:bg-green-100 text-green-700 font-semibold px-3 py-2 rounded-xl text-xs transition-all disabled:opacity-60">
+              <svg v-if="switchingRole" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              <span v-else>🔄</span>
+              {{ switchingRole ? 'Switching…' : 'Switch Role' }}
               <svg class="w-3.5 h-3.5 transition-transform" :class="showRoleSwitcher ? 'rotate-180':''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
               </svg>
@@ -526,6 +528,7 @@ import { useRouter } from 'vue-router';
 import api from '../services/api';
 import store from '../store';
 import { Chart } from 'chart.js/auto';
+import { DEMO_ROLES, switchToRole } from '../services/roleSwitcher';
 
 const TREK_IMAGES = [
   'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80',
@@ -549,23 +552,18 @@ export default {
     const handleLogout = () => { store.logout(); router.push({ name: 'Login' }); };
 
     const showRoleSwitcher = ref(false);
+    const switchingRole = ref(false);
     const roleSwitcherRef = ref(null);
-    const DEMO_CREDS = { TREKKER: { email: 'trekker@tma.com', password: 'pass123' }, STAFF: { email: 'staff@tma.com', password: 'pass123' }, ADMIN: { email: 'admin@tma.com', password: 'pass123' } };
-    const demoRoles = computed(() => [
-      { role: 'TREKKER', label: 'Trekker', email: 'trekker@tma.com', icon: '🥾', bg: 'bg-green-100',  current: user.value?.role === 'TREKKER' },
-      { role: 'STAFF',   label: 'Staff',   email: 'staff@tma.com',   icon: '🧑‍💼', bg: 'bg-orange-100', current: user.value?.role === 'STAFF'   },
-      { role: 'ADMIN',   label: 'Admin',   email: 'admin@tma.com',   icon: '🛡',  bg: 'bg-red-100',    current: user.value?.role === 'ADMIN'   },
-    ]);
+    const demoRoles = computed(() =>
+      DEMO_ROLES.map(r => ({ ...r, current: user.value?.role === r.role }))
+    );
     const switchRole = async (r) => {
-      if (r.current) return;
+      if (r.current || switchingRole.value) return;
+      switchingRole.value = true;
       showRoleSwitcher.value = false;
-      try {
-        const res = await api.post('/api/auth/login', DEMO_CREDS[r.role]);
-        store.login(res.data.user, res.data.access_token, res.data.refresh_token);
-        if (r.role === 'ADMIN') router.push({ name: 'AdminDashboard' });
-        else if (r.role === 'STAFF') router.push({ name: 'StaffDashboard' });
-        else router.push({ name: 'TrekkerDashboard' });
-      } catch (e) { window.triggerToast('Failed to switch', 'error'); }
+      const ok = await switchToRole(r.role, router);
+      if (!ok) window.triggerToast('Failed to switch — try again in 30s', 'error');
+      switchingRole.value = false;
     };
     const handleOutside = (e) => { if (roleSwitcherRef.value && !roleSwitcherRef.value.contains(e.target)) showRoleSwitcher.value = false; };
 
@@ -702,7 +700,7 @@ export default {
     onBeforeUnmount(() => document.removeEventListener('click', handleOutside));
 
     return {
-      user, handleLogout, showRoleSwitcher, roleSwitcherRef, demoRoles, switchRole,
+      user, handleLogout, showRoleSwitcher, switchingRole, roleSwitcherRef, demoRoles, switchRole,
       activeTab, showStaffModal, showTrekModal,
       metrics, staffList, treks, usersList, bookingsList,
       userSearchQuery, staffSearchQuery, trekSearchQuery, bookingSearchQuery,
