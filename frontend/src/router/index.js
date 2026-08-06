@@ -29,14 +29,16 @@ const routes = [
 const router = createRouter({ history: createWebHashHistory(), routes });
 
 router.beforeEach((to, from, next) => {
-  const isAuth  = store.isAuthenticated.value;
-  const role    = store.state.user?.role;
+  const isAuth = store.isAuthenticated.value;
+  const role   = store.state.user?.role;
 
   if (to.matched.some(r => r.meta.guest)) return next();
 
   if (to.matched.some(r => r.meta.requiresAuth)) {
+    // Not authenticated at all → login
     if (!isAuth) return next({ name: 'Login' });
 
+    // Role mismatch → redirect to correct dashboard
     const required = to.meta.role;
     if (required && role !== required) {
       if (role === 'ADMIN')  return next({ name: 'AdminDashboard' });

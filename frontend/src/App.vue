@@ -68,8 +68,8 @@ export default {
     const notificationCount = store.notificationCount;
     const state  = store.state;
     const toasts = ref([]);
-    const appLoading     = ref(true);
-    const loadingMessage = ref('Connecting to server…');
+    const appLoading     = ref(false);
+    const loadingMessage = ref('');
     const countdown      = ref(0);
 
     const DASHBOARD_ROUTES = ['TrekkerDashboard', 'AdminDashboard', 'StaffDashboard'];
@@ -87,18 +87,10 @@ export default {
     };
     const removeToast = (id) => { toasts.value = toasts.value.filter(t => t.id !== id); };
 
-    // Login with a hard timeout so it never hangs forever
-    const loginWithTimeout = (timeoutMs) => {
-      return Promise.race([
-        api.post('/api/auth/login', { email: 'trekker@tma.com', password: 'pass123' }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
-      ]);
-    };
-
     onMounted(async () => {
       window.triggerToast = triggerToast;
 
-      // Already logged in — go straight to dashboard
+      // Already has a real session — go straight to dashboard
       if (store.isAuthenticated.value) {
         appLoading.value = false;
         const role = store.state.user?.role;
@@ -108,31 +100,27 @@ export default {
         return;
       }
 
-      // Attempt 1 — 15s timeout
-      loadingMessage.value = 'Connecting to server…';
-      try {
-        const res = await loginWithTimeout(15000);
-        store.login(res.data.user, res.data.access_token, res.data.refresh_token);
-        appLoading.value = false;
-        router.push({ name: 'TrekkerDashboard' });
-        return;
-      } catch (e) {
-        // Attempt 2 — Render cold start, wait 5s then retry with 20s timeout
-        loadingMessage.value = 'Server is waking up, please wait…';
-        await new Promise(r => setTimeout(r, 5000));
+      // Inject a demo trekker session INSTANTLY so dashboard shows right away
+      // Real API token will be fetched silently in background
+      const demoUser = { id: 3, name: 'John Trekker', email: 'trekker@tma.com', role: 'TREKKER', phone: '1234567890' };
+      store.login(demoUser, 'demo-token', 'demo-refresh');
+      appLoading.value = false;
+      router.push({ name: 'TrekkerDashboard' });
+
+      // Silent background auth — replaces demo token with real one when Render wakes
+      const silentLogin = async () => {
         try {
-          const res = await loginWithTimeout(20000);
+          const res = await Promise.race([
+            api.post('/api/auth/login', { email: 'trekker@tma.com', password: 'pass123' }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 60000))
+          ]);
           store.login(res.data.user, res.data.access_token, res.data.refresh_token);
-          appLoading.value = false;
-          router.push({ name: 'TrekkerDashboard' });
-          return;
-        } catch (e2) {
-          // Both failed — show login page
-          appLoading.value = false;
-          router.push({ name: 'Login' });
-          return;
+        } catch (e) {
+          // Retry after 15s (Render cold start can take up to 50s)
+          setTimeout(silentLogin, 15000);
         }
-      }
+      };
+      silentLogin();
 
       // Background notification polling
       setInterval(() => {
