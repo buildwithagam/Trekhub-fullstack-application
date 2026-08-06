@@ -1,12 +1,6 @@
 import axios from 'axios';
-import api, { markAuthReady, resetAuthReady } from './api';
+import api from './api';
 import store from '../store';
-
-export const DEMO_CREDS = {
-  TREKKER: { email: 'trekker@tma.com', password: 'pass123' },
-  STAFF:   { email: 'staff@tma.com',   password: 'pass123' },
-  ADMIN:   { email: 'admin@tma.com',   password: 'pass123' },
-};
 
 export const DEMO_ROLES = [
   { role: 'TREKKER', label: 'Trekker', email: 'trekker@tma.com', icon: '🥾', bg: 'bg-green-100',  route: 'TrekkerDashboard' },
@@ -14,26 +8,33 @@ export const DEMO_ROLES = [
   { role: 'ADMIN',   label: 'Admin',   email: 'admin@tma.com',   icon: '🛡',  bg: 'bg-red-100',    route: 'AdminDashboard'   },
 ];
 
+// Demo user objects — no API call needed
+const DEMO_USERS = {
+  TREKKER: { id: 3, name: 'John Trekker',      email: 'trekker@tma.com', role: 'TREKKER', phone: '1234567890' },
+  STAFF:   { id: 2, name: 'Trek Guide 1',       email: 'staff@tma.com',   role: 'STAFF',   phone: '9876543210' },
+  ADMIN:   { id: 1, name: 'TMA Administrator',  email: 'admin@tma.com',   role: 'ADMIN',   phone: '' },
+};
+
 export async function switchToRole(role, router) {
-  const creds = DEMO_CREDS[role];
-  if (!creds) return false;
-  try {
-    // Use axios directly — bypass the auth-ready queue since we're switching auth
-    const res = await axios.post(
-      `${api.defaults.baseURL}/api/auth/login`,
-      creds,
-      { timeout: 30000 }
-    );
-    const { user, access_token, refresh_token } = res.data;
-    store.login(user, access_token, refresh_token);
-    // Reset and immediately mark ready — new role has a real token
-    resetAuthReady();
-    markAuthReady();
-    const target = DEMO_ROLES.find(r => r.role === role);
-    await router.push({ name: target.route });
-    return true;
-  } catch (e) {
-    console.error('Role switch failed', e);
-    return false;
-  }
+  const target = DEMO_ROLES.find(r => r.role === role);
+  if (!target) return false;
+
+  // Switch instantly using demo data — no backend needed
+  const demoUser = DEMO_USERS[role];
+  store.login(demoUser, 'demo-token', 'demo-refresh');
+  await router.push({ name: target.route });
+
+  // Try to get a real token in background (non-blocking)
+  axios.post(
+    `${api.defaults.baseURL}/api/auth/login`,
+    { email: demoUser.email, password: 'pass123' },
+    { timeout: 30000 }
+  ).then(res => {
+    store.login(res.data.user, res.data.access_token, res.data.refresh_token);
+    window.dispatchEvent(new Event('auth-ready'));
+  }).catch(() => {
+    // Backend still sleeping — dashboard still works with demo data
+  });
+
+  return true;
 }
