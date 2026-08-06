@@ -53,8 +53,9 @@
 <script>
 import { computed, ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import axios from 'axios';
 import store from './store';
-import api from './services/api';
+import api, { markAuthReady } from './services/api';
 import AppNavbar from './components/common/Navbar.vue';
 import ToastContainer from './components/common/ToastContainer.vue';
 
@@ -90,8 +91,9 @@ export default {
     onMounted(async () => {
       window.triggerToast = triggerToast;
 
-      // Already has a real session — go straight to dashboard
+      // Already has a real session — mark auth ready and go to dashboard
       if (store.isAuthenticated.value) {
+        markAuthReady();
         appLoading.value = false;
         const role = store.state.user?.role;
         if (role === 'ADMIN')      router.push({ name: 'AdminDashboard' });
@@ -100,24 +102,30 @@ export default {
         return;
       }
 
-      // Inject a demo trekker session INSTANTLY so dashboard shows right away
-      // Real API token will be fetched silently in background
+      // Show dashboard instantly with a placeholder session
+      // API calls are QUEUED (not fired) until real token arrives
       const demoUser = { id: 3, name: 'John Trekker', email: 'trekker@tma.com', role: 'TREKKER', phone: '1234567890' };
       store.login(demoUser, 'demo-token', 'demo-refresh');
       appLoading.value = false;
       router.push({ name: 'TrekkerDashboard' });
 
-      // Silent background auth — replaces demo token with real one when Render wakes
+      // Background auth — keeps retrying until Render wakes up
       const silentLogin = async () => {
         try {
           const res = await Promise.race([
-            api.post('/api/auth/login', { email: 'trekker@tma.com', password: 'pass123' }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 60000))
+            axios.post(
+              `${api.defaults.baseURL}/api/auth/login`,
+              { email: 'trekker@tma.com', password: 'pass123' },
+              { timeout: 30000 }
+            ),
+            new Promise((_, reject) => setTimeout(() => reject('timeout'), 30000))
           ]);
+          // Real token received — update store and unblock all queued API calls
           store.login(res.data.user, res.data.access_token, res.data.refresh_token);
+          markAuthReady();
         } catch (e) {
-          // Retry after 15s (Render cold start can take up to 50s)
-          setTimeout(silentLogin, 15000);
+          // Render still sleeping — retry in 10s
+          setTimeout(silentLogin, 10000);
         }
       };
       silentLogin();

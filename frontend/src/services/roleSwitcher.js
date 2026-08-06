@@ -1,5 +1,5 @@
-// Shared role-switcher used by all 3 dashboards
-import api from './api';
+import axios from 'axios';
+import api, { markAuthReady, resetAuthReady } from './api';
 import store from '../store';
 
 export const DEMO_CREDS = {
@@ -18,10 +18,17 @@ export async function switchToRole(role, router) {
   const creds = DEMO_CREDS[role];
   if (!creds) return false;
   try {
-    const res = await api.post('/api/auth/login', creds);
+    // Use axios directly — bypass the auth-ready queue since we're switching auth
+    const res = await axios.post(
+      `${api.defaults.baseURL}/api/auth/login`,
+      creds,
+      { timeout: 30000 }
+    );
     const { user, access_token, refresh_token } = res.data;
-    // Update store first before navigation so guard sees correct role
     store.login(user, access_token, refresh_token);
+    // Reset and immediately mark ready — new role has a real token
+    resetAuthReady();
+    markAuthReady();
     const target = DEMO_ROLES.find(r => r.role === role);
     await router.push({ name: target.route });
     return true;
