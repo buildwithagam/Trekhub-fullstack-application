@@ -1,0 +1,41 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Bat / shell runner files
+*.bat
+*.sh
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+
+# Database files
+backend/database/
+
+# Reports & exports (generated files)
+backend/reports/
+frontend/public/exports/
+
+# Frontend build output — tracked intentionally so Flask can serve it on clone
+
+# Node modules
+frontend/node_modules/
+
+# Environment / secrets
+.env
+*.env
+backend/config_local.py
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
