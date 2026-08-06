@@ -729,7 +729,18 @@ export default {
 
     const formatDate = (str) => str ? str.split('T')[0] : '';
 
-    onMounted(() => { fetchData(); fetchUsers(); document.addEventListener('click', handleOutside); });
+    onMounted(() => {
+      // Pre-fill dummy data instantly — zero wait time
+      metrics.value      = DUMMY_METRICS;
+      staffList.value    = DUMMY_STAFF;
+      treks.value        = DUMMY_TREKS_ADMIN;
+      usersList.value    = DUMMY_USERS_ADMIN;
+      bookingsList.value = DUMMY_BOOKINGS_ADMIN;
+      document.addEventListener('click', handleOutside);
+      // Fetch real data in background
+      fetchData();
+      fetchUsers();
+    });
     onBeforeUnmount(() => document.removeEventListener('click', handleOutside));
 
     return {

@@ -403,7 +403,14 @@ export default {
     };
 
     let pollInterval = null;
-    onMounted(() => { fetchAssignedTreks(); pollInterval = setInterval(fetchAssignedTreks, 10000); document.addEventListener('click', handleOutside); });
+    onMounted(() => {
+      // Pre-fill dummy data instantly
+      assignedTreks.value = DUMMY_ASSIGNED_TREKS;
+      document.addEventListener('click', handleOutside);
+      // Fetch real data in background
+      fetchAssignedTreks();
+      pollInterval = setInterval(fetchAssignedTreks, 20000);
+    });
     onBeforeUnmount(() => { if (pollInterval) clearInterval(pollInterval); document.removeEventListener('click', handleOutside); });
 
     return {

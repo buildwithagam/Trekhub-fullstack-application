@@ -892,12 +892,16 @@ export default {
     };
 
     onMounted(async () => {
-      reloadAll();
+      // Show dummy data INSTANTLY — no waiting
+      openTreks.value    = DUMMY_TREKS;
+      bookings.value     = DUMMY_BOOKINGS;
+      notifications.value = DUMMY_NOTIFICATIONS;
       buildCharts();
       document.addEventListener('click', handleClickOutside);
-      // Reload data when real token arrives (backend woke up)
       window.addEventListener('auth-ready', reloadAll);
-      pollInterval = setInterval(reloadAll, 15000);
+      // Try real API in background — replace dummy if real data comes back
+      reloadAll();
+      pollInterval = setInterval(reloadAll, 20000);
     });
     onBeforeUnmount(() => {
       if (pollInterval) clearInterval(pollInterval);
