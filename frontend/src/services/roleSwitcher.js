@@ -10,7 +10,7 @@ export const DEMO_ROLES = [
 
 // Demo user objects — no API call needed
 const DEMO_USERS = {
-  TREKKER: { id: 3, name: 'John Trekker',      email: 'trekker@tma.com', role: 'TREKKER', phone: '1234567890' },
+  TREKKER: { id: 3, name: 'Agam Saxena',        email: 'trekker@tma.com', role: 'TREKKER', phone: '1234567890' },
   STAFF:   { id: 2, name: 'Trek Guide 1',       email: 'staff@tma.com',   role: 'STAFF',   phone: '9876543210' },
   ADMIN:   { id: 1, name: 'TMA Administrator',  email: 'admin@tma.com',   role: 'ADMIN',   phone: '' },
 };

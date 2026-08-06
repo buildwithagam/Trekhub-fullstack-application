@@ -548,7 +548,7 @@ const DUMMY_TREKS_ADMIN = [
 ];
 
 const DUMMY_USERS_ADMIN = [
-  { id:3, name:'John Trekker',   email:'trekker@tma.com', phone:'1234567890', created_at:'2026-06-15', is_active:true,  is_blacklisted:false },
+  { id:3, name:'Agam Saxena',   email:'trekker@tma.com', phone:'1234567890', created_at:'2026-06-15', is_active:true,  is_blacklisted:false },
   { id:5, name:'Raj Patel',      email:'raj@gmail.com',   phone:'9876543210', created_at:'2026-07-01', is_active:true,  is_blacklisted:false },
   { id:6, name:'Meera Singh',    email:'meera@gmail.com', phone:'8877665544', created_at:'2026-07-10', is_active:true,  is_blacklisted:false },
   { id:7, name:'Arjun Mehta',    email:'arjun@gmail.com', phone:'7766554433', created_at:'2026-06-20', is_active:true,  is_blacklisted:false },
@@ -556,10 +556,10 @@ const DUMMY_USERS_ADMIN = [
 ];
 
 const DUMMY_BOOKINGS_ADMIN = [
-  { id:1, user_name:'John Trekker', user_email:'trekker@tma.com', user_phone:'1234567890', trek_name:'Kashmir Great Lakes', location:'Srinagar, Kashmir',        booking_date:'2026-07-10', booking_status:'Booked',    payment_status:'Paid'    },
+  { id:1, user_name:'Agam Saxena', user_email:'trekker@tma.com', user_phone:'1234567890', trek_name:'Kashmir Great Lakes', location:'Srinagar, Kashmir',        booking_date:'2026-07-10', booking_status:'Booked',    payment_status:'Paid'    },
   { id:2, user_name:'Raj Patel',    user_email:'raj@gmail.com',   user_phone:'9876543210', trek_name:'Valley of Flowers',   location:'Chamoli, Uttarakhand',     booking_date:'2026-07-05', booking_status:'Booked',    payment_status:'Paid'    },
   { id:3, user_name:'Meera Singh',  user_email:'meera@gmail.com', user_phone:'8877665544', trek_name:'Hampta Pass Trek',    location:'Manali, Himachal Pradesh', booking_date:'2026-07-12', booking_status:'Booked',    payment_status:'Pending' },
-  { id:4, user_name:'John Trekker', user_email:'trekker@tma.com', user_phone:'1234567890', trek_name:'Kedarkantha Trek',    location:'Uttarakhand',              booking_date:'2025-11-20', booking_status:'Completed', payment_status:'Paid'    },
+  { id:4, user_name:'Agam Saxena', user_email:'trekker@tma.com', user_phone:'1234567890', trek_name:'Kedarkantha Trek',    location:'Uttarakhand',              booking_date:'2025-11-20', booking_status:'Completed', payment_status:'Paid'    },
   { id:5, user_name:'Arjun Mehta',  user_email:'arjun@gmail.com', user_phone:'7766554433', trek_name:'Triund Trek',         location:'Dharamshala, HP',          booking_date:'2026-07-15', booking_status:'Booked',    payment_status:'Paid'    },
 ];
 

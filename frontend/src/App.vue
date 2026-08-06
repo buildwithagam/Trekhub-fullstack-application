@@ -119,7 +119,7 @@ export default {
       } catch (e) {
         // Render is sleeping — show dashboard with demo data immediately,
         // mark auth ready so components render (API calls will return empty, that's fine)
-        const demoUser = { id: 3, name: 'John Trekker', email: 'trekker@tma.com', role: 'TREKKER', phone: '1234567890' };
+        const demoUser = { id: 3, name: 'Agam Saxena', email: 'trekker@tma.com', role: 'TREKKER', phone: '1234567890' };
         store.login(demoUser, 'demo-token', 'demo-refresh');
         markAuthReady(); // ← unblock all API calls immediately
         appLoading.value = false;
