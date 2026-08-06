@@ -102,33 +102,46 @@ export default {
         return;
       }
 
-      // Show dashboard instantly with a placeholder session
-      // API calls are QUEUED (not fired) until real token arrives
-      const demoUser = { id: 3, name: 'John Trekker', email: 'trekker@tma.com', role: 'TREKKER', phone: '1234567890' };
-      store.login(demoUser, 'demo-token', 'demo-refresh');
-      appLoading.value = false;
-      router.push({ name: 'TrekkerDashboard' });
+      // Try real login with 8s timeout — fast enough for warm Render
+      try {
+        const res = await Promise.race([
+          axios.post(
+            `${api.defaults.baseURL}/api/auth/login`,
+            { email: 'trekker@tma.com', password: 'pass123' }
+          ),
+          new Promise((_, reject) => setTimeout(() => reject('timeout'), 8000))
+        ]);
+        store.login(res.data.user, res.data.access_token, res.data.refresh_token);
+        markAuthReady();
+        appLoading.value = false;
+        router.push({ name: 'TrekkerDashboard' });
+        return;
+      } catch (e) {
+        // Render is sleeping — show dashboard with demo data immediately,
+        // mark auth ready so components render (API calls will return empty, that's fine)
+        const demoUser = { id: 3, name: 'John Trekker', email: 'trekker@tma.com', role: 'TREKKER', phone: '1234567890' };
+        store.login(demoUser, 'demo-token', 'demo-refresh');
+        markAuthReady(); // ← unblock all API calls immediately
+        appLoading.value = false;
+        router.push({ name: 'TrekkerDashboard' });
 
-      // Background auth — keeps retrying until Render wakes up
-      const silentLogin = async () => {
-        try {
-          const res = await Promise.race([
-            axios.post(
+        // Keep retrying in background — replace demo token with real one
+        const silentLogin = async () => {
+          try {
+            const res = await axios.post(
               `${api.defaults.baseURL}/api/auth/login`,
               { email: 'trekker@tma.com', password: 'pass123' },
-              { timeout: 30000 }
-            ),
-            new Promise((_, reject) => setTimeout(() => reject('timeout'), 30000))
-          ]);
-          // Real token received — update store and unblock all queued API calls
-          store.login(res.data.user, res.data.access_token, res.data.refresh_token);
-          markAuthReady();
-        } catch (e) {
-          // Render still sleeping — retry in 10s
-          setTimeout(silentLogin, 10000);
-        }
-      };
-      silentLogin();
+              { timeout: 15000 }
+            );
+            store.login(res.data.user, res.data.access_token, res.data.refresh_token);
+            // Force dashboard to reload its data now that real token is set
+            window.dispatchEvent(new Event('auth-ready'));
+          } catch (_) {
+            setTimeout(silentLogin, 10000);
+          }
+        };
+        setTimeout(silentLogin, 5000);
+      }
 
       // Background notification polling
       setInterval(() => {

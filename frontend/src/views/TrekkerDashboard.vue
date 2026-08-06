@@ -853,21 +853,27 @@ export default {
     const handleLogout = () => { store.logout(); router.push({ name: 'Login' }); };
 
     let pollInterval = null;
+
+    const reloadAll = () => {
+      loadOpenTreks();
+      loadBookings();
+      loadNotifications();
+    };
+
     onMounted(async () => {
-      await loadOpenTreks();
-      await loadBookings();
-      await loadNotifications();
+      reloadAll();
       buildCharts();
       document.addEventListener('click', handleClickOutside);
-      pollInterval = setInterval(() => {
-        loadOpenTreks(); loadBookings(); loadNotifications();
-      }, 15000);
+      // Reload data when real token arrives (backend woke up)
+      window.addEventListener('auth-ready', reloadAll);
+      pollInterval = setInterval(reloadAll, 15000);
     });
     onBeforeUnmount(() => {
       if (pollInterval) clearInterval(pollInterval);
       if (lineChart) lineChart.destroy();
       if (donutChart) donutChart.destroy();
       document.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('auth-ready', reloadAll);
     });
 
     return {
