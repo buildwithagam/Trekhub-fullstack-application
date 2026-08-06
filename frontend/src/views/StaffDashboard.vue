@@ -315,6 +315,13 @@ import api from '../services/api';
 import store from '../store';
 import { DEMO_ROLES, switchToRole } from '../services/roleSwitcher';
 
+const DUMMY_ASSIGNED_TREKS = [
+  { id:1, trek_name:'Kashmir Great Lakes',   location:'Srinagar, Kashmir',           description:'A stunning trek through the most beautiful alpine lakes in India.',    difficulty:'Moderate', duration_days:7, total_slots:15, available_slots:8,  start_date:'2026-08-10', end_date:'2026-08-17', status:'Open',      participant_count:7  },
+  { id:2, trek_name:'Valley of Flowers',     location:'Chamoli, Uttarakhand',        description:'UNESCO World Heritage site filled with rare alpine blooms.',            difficulty:'Easy',     duration_days:6, total_slots:20, available_slots:14, start_date:'2026-08-01', end_date:'2026-08-07', status:'Open',      participant_count:6  },
+  { id:3, trek_name:'Roopkund Mystery Lake', location:'Garhwal, Uttarakhand',        description:'High altitude glacial lake trek with mysterious skeletal remains.',      difficulty:'Hard',     duration_days:8, total_slots:10, available_slots:6,  start_date:'2026-09-15', end_date:'2026-09-23', status:'Pending',   participant_count:0  },
+  { id:4, trek_name:'Hampta Pass Trek',      location:'Manali, Himachal Pradesh',    description:'A thrilling crossover trek connecting Kullu and Spiti valley.',         difficulty:'Moderate', duration_days:5, total_slots:15, available_slots:8,  start_date:'2026-08-20', end_date:'2026-08-25', status:'Approved',  participant_count:7  },
+];
+
 const TREK_IMAGES = [
   'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80',
   'https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=80',
@@ -361,8 +368,12 @@ export default {
     const slotsForm = reactive({ available_slots: 0 });
 
     const fetchAssignedTreks = async () => {
-      try { const res = await api.get('/api/staff/treks'); assignedTreks.value = res.data; }
-      catch (err) { console.error(err); }
+      try {
+        const res = await api.get('/api/staff/treks');
+        assignedTreks.value = res.data?.length ? res.data : DUMMY_ASSIGNED_TREKS;
+      } catch (err) {
+        if (!assignedTreks.value.length) assignedTreks.value = DUMMY_ASSIGNED_TREKS;
+      }
     };
 
     const openParticipantsModal = async (trek) => {

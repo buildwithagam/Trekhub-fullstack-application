@@ -592,6 +592,30 @@ import api from '../services/api';
 import store from '../store';
 import { DEMO_ROLES, switchToRole } from '../services/roleSwitcher';
 
+// ── Dummy data shown while backend wakes up ───────────────────────────────
+const DUMMY_TREKS = [
+  { id:1, trek_name:'Hampta Pass Trek',      location:'Manali, Himachal Pradesh',   difficulty:'Moderate', duration_days:5, start_date:'2026-08-20', end_date:'2026-08-25', available_slots:8,  max_participants:15, price:6250, status:'Open' },
+  { id:2, trek_name:'Kedarkantha Trek',       location:'Uttarakhand',                difficulty:'Easy',     duration_days:6, start_date:'2026-09-01', end_date:'2026-09-07', available_slots:12, max_participants:20, price:5450, status:'Open' },
+  { id:3, trek_name:'Roopkund Mystery Lake',  location:'Garhwal, Uttarakhand',       difficulty:'Hard',     duration_days:8, start_date:'2026-09-15', end_date:'2026-09-23', available_slots:4,  max_participants:10, price:8200, status:'Open' },
+  { id:4, trek_name:'Valley of Flowers',      location:'Chamoli, Uttarakhand',       difficulty:'Easy',     duration_days:6, start_date:'2026-08-01', end_date:'2026-08-07', available_slots:18, max_participants:20, price:3950, status:'Open' },
+  { id:5, trek_name:'Triund Trek',            location:'Dharamshala, Himachal Pradesh', difficulty:'Easy',  duration_days:2, start_date:'2026-08-10', end_date:'2026-08-12', available_slots:20, max_participants:25, price:2500, status:'Open' },
+  { id:6, trek_name:'Bhrigu Lake Trek',       location:'Kullu, Himachal Pradesh',    difficulty:'Moderate', duration_days:5, start_date:'2026-09-05', end_date:'2026-09-10', available_slots:6,  max_participants:12, price:5900, status:'Open' },
+];
+
+const DUMMY_BOOKINGS = [
+  { id:1, trek_name:'Hampta Pass Trek',     location:'Manali, Himachal Pradesh',  start_date:'2026-08-20', end_date:'2026-08-25', booking_date:'2026-07-10', booking_status:'Booked',    payment_status:'Paid'    },
+  { id:2, trek_name:'Valley of Flowers',    location:'Chamoli, Uttarakhand',      start_date:'2026-08-01', end_date:'2026-08-07', booking_date:'2026-07-05', booking_status:'Booked',    payment_status:'Paid'    },
+  { id:3, trek_name:'Kedarkantha Trek',     location:'Uttarakhand',               start_date:'2025-12-25', end_date:'2025-12-31', booking_date:'2025-11-20', booking_status:'Completed', payment_status:'Paid'    },
+  { id:4, trek_name:'Triund Trek',          location:'Dharamshala',               start_date:'2025-10-05', end_date:'2025-10-07', booking_date:'2025-09-15', booking_status:'Completed', payment_status:'Paid'    },
+  { id:5, trek_name:'Bhrigu Lake Trek',     location:'Kullu, Himachal Pradesh',   start_date:'2025-11-10', end_date:'2025-11-15', booking_date:'2025-10-01', booking_status:'Completed', payment_status:'Paid'    },
+];
+
+const DUMMY_NOTIFICATIONS = [
+  { id:1, message:'Your booking for <b>Hampta Pass Trek</b> has been confirmed!',  created_at:'2026-07-10', is_read:false },
+  { id:2, message:'Reminder: <b>Valley of Flowers</b> trek starts in 3 days.',     created_at:'2026-07-29', is_read:false },
+  { id:3, message:'Your trek history CSV export is ready for download.',            created_at:'2026-07-08', is_read:true  },
+];
+
 Chart.register(LineElement, PointElement, LineController, CategoryScale, LinearScale, Filler, Tooltip, ArcElement, DoughnutController);
 
 const TREK_IMAGES = [
@@ -777,22 +801,29 @@ export default {
         if (filters.duration_days) params.duration_days = filters.duration_days;
         if (filters.start_date) params.start_date = filters.start_date;
         const res = await api.get('/api/treks', { params });
-        openTreks.value = res.data;
-      } catch (e) { console.error(e); }
+        // Use real data if available, fallback to dummy
+        openTreks.value = (res.data && res.data.length > 0) ? res.data : DUMMY_TREKS;
+      } catch (e) {
+        if (openTreks.value.length === 0) openTreks.value = DUMMY_TREKS;
+      }
     };
 
     const loadBookings = async () => {
       try {
         const res = await api.get('/api/trekker/bookings');
-        bookings.value = res.data;
-      } catch (e) { console.error(e); }
+        bookings.value = (res.data && res.data.length > 0) ? res.data : DUMMY_BOOKINGS;
+      } catch (e) {
+        if (bookings.value.length === 0) bookings.value = DUMMY_BOOKINGS;
+      }
     };
 
     const loadNotifications = async () => {
       try {
         const res = await api.get('/api/trekker/notifications');
-        notifications.value = res.data;
-      } catch (e) { console.error(e); }
+        notifications.value = (res.data && res.data.length > 0) ? res.data : DUMMY_NOTIFICATIONS;
+      } catch (e) {
+        if (notifications.value.length === 0) notifications.value = DUMMY_NOTIFICATIONS;
+      }
     };
 
     const markRead = async (id) => {

@@ -530,6 +530,39 @@ import store from '../store';
 import { Chart } from 'chart.js/auto';
 import { DEMO_ROLES, switchToRole } from '../services/roleSwitcher';
 
+const DUMMY_METRICS = { total_treks:6, total_staff:3, total_trekkers:12, total_bookings:18, active_treks:4, completed_treks:2 };
+
+const DUMMY_STAFF = [
+  { id:2, name:'Trek Guide 1',   email:'staff@tma.com',    phone:'9876543210', experience:5,  certifications:'Advanced Mountaineering (HMI), Wilderness First Aid', is_active:true,  is_blacklisted:false },
+  { id:4, name:'Shyam Verma',    email:'shyam@gmail.com',  phone:'9123456780', experience:3,  certifications:'Basic Mountaineering Course', is_active:true,  is_blacklisted:false },
+  { id:5, name:'Priya Sharma',   email:'priya@tma.com',    phone:'9988776655', experience:7,  certifications:'High Altitude Rescue, First Aid',                     is_active:true,  is_blacklisted:false },
+];
+
+const DUMMY_TREKS_ADMIN = [
+  { id:1, trek_name:'Kashmir Great Lakes',    location:'Srinagar, Kashmir',           difficulty:'Moderate', duration_days:7, total_slots:15, available_slots:8,  start_date:'2026-08-10', end_date:'2026-08-17', status:'Open',      assigned_staff_id:2 },
+  { id:2, trek_name:'Valley of Flowers',      location:'Chamoli, Uttarakhand',        difficulty:'Easy',     duration_days:6, total_slots:20, available_slots:14, start_date:'2026-08-01', end_date:'2026-08-07', status:'Open',      assigned_staff_id:2 },
+  { id:3, trek_name:'Roopkund Mystery Lake',  location:'Garhwal, Uttarakhand',        difficulty:'Hard',     duration_days:8, total_slots:10, available_slots:6,  start_date:'2026-09-15', end_date:'2026-09-23', status:'Pending',   assigned_staff_id:4 },
+  { id:4, trek_name:'Hampta Pass Trek',       location:'Manali, Himachal Pradesh',    difficulty:'Moderate', duration_days:5, total_slots:15, available_slots:8,  start_date:'2026-08-20', end_date:'2026-08-25', status:'Open',      assigned_staff_id:5 },
+  { id:5, trek_name:'Triund Trek',            location:'Dharamshala, HP',             difficulty:'Easy',     duration_days:2, total_slots:25, available_slots:20, start_date:'2026-08-10', end_date:'2026-08-12', status:'Open',      assigned_staff_id:4 },
+  { id:6, trek_name:'Kedarkantha Trek',       location:'Uttarakhand',                 difficulty:'Easy',     duration_days:6, total_slots:20, available_slots:0,  start_date:'2025-12-20', end_date:'2025-12-26', status:'Completed', assigned_staff_id:2 },
+];
+
+const DUMMY_USERS_ADMIN = [
+  { id:3, name:'John Trekker',   email:'trekker@tma.com', phone:'1234567890', created_at:'2026-06-15', is_active:true,  is_blacklisted:false },
+  { id:5, name:'Raj Patel',      email:'raj@gmail.com',   phone:'9876543210', created_at:'2026-07-01', is_active:true,  is_blacklisted:false },
+  { id:6, name:'Meera Singh',    email:'meera@gmail.com', phone:'8877665544', created_at:'2026-07-10', is_active:true,  is_blacklisted:false },
+  { id:7, name:'Arjun Mehta',    email:'arjun@gmail.com', phone:'7766554433', created_at:'2026-06-20', is_active:true,  is_blacklisted:false },
+  { id:8, name:'Sneha Reddy',    email:'sneha@gmail.com', phone:'6655443322', created_at:'2026-07-05', is_active:false, is_blacklisted:false },
+];
+
+const DUMMY_BOOKINGS_ADMIN = [
+  { id:1, user_name:'John Trekker', user_email:'trekker@tma.com', user_phone:'1234567890', trek_name:'Kashmir Great Lakes', location:'Srinagar, Kashmir',        booking_date:'2026-07-10', booking_status:'Booked',    payment_status:'Paid'    },
+  { id:2, user_name:'Raj Patel',    user_email:'raj@gmail.com',   user_phone:'9876543210', trek_name:'Valley of Flowers',   location:'Chamoli, Uttarakhand',     booking_date:'2026-07-05', booking_status:'Booked',    payment_status:'Paid'    },
+  { id:3, user_name:'Meera Singh',  user_email:'meera@gmail.com', user_phone:'8877665544', trek_name:'Hampta Pass Trek',    location:'Manali, Himachal Pradesh', booking_date:'2026-07-12', booking_status:'Booked',    payment_status:'Pending' },
+  { id:4, user_name:'John Trekker', user_email:'trekker@tma.com', user_phone:'1234567890', trek_name:'Kedarkantha Trek',    location:'Uttarakhand',              booking_date:'2025-11-20', booking_status:'Completed', payment_status:'Paid'    },
+  { id:5, user_name:'Arjun Mehta',  user_email:'arjun@gmail.com', user_phone:'7766554433', trek_name:'Triund Trek',         location:'Dharamshala, HP',          booking_date:'2026-07-15', booking_status:'Booked',    payment_status:'Paid'    },
+];
+
 const TREK_IMAGES = [
   'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80',
   'https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=80',
@@ -610,27 +643,27 @@ export default {
     const formatLabel = (str) => str.replace(/_/g, ' ');
 
     const fetchStaff = async () => {
-      try { const res = await api.get('/api/admin/staff', { params: { search: staffSearchQuery.value } }); staffList.value = res.data; }
-      catch (err) { console.error(err); }
+      try { const res = await api.get('/api/admin/staff', { params: { search: staffSearchQuery.value } }); staffList.value = res.data?.length ? res.data : DUMMY_STAFF; }
+      catch (err) { if (!staffList.value.length) staffList.value = DUMMY_STAFF; }
     };
     const fetchTreks = async () => {
-      try { const res = await api.get('/api/treks', { params: { location: trekSearchQuery.value } }); treks.value = res.data; }
-      catch (err) { console.error(err); }
+      try { const res = await api.get('/api/treks', { params: { location: trekSearchQuery.value } }); treks.value = res.data?.length ? res.data : DUMMY_TREKS_ADMIN; }
+      catch (err) { if (!treks.value.length) treks.value = DUMMY_TREKS_ADMIN; }
     };
     const fetchBookings = async () => {
-      try { const res = await api.get('/api/admin/bookings', { params: { search: bookingSearchQuery.value } }); bookingsList.value = res.data; }
-      catch (err) { console.error(err); }
+      try { const res = await api.get('/api/admin/bookings', { params: { search: bookingSearchQuery.value } }); bookingsList.value = res.data?.length ? res.data : DUMMY_BOOKINGS_ADMIN; }
+      catch (err) { if (!bookingsList.value.length) bookingsList.value = DUMMY_BOOKINGS_ADMIN; }
     };
     const fetchData = async () => {
       try {
         const statsRes = await api.get('/api/admin/dashboard');
-        metrics.value = statsRes.data;
-        await fetchStaff(); await fetchTreks(); await fetchBookings();
-      } catch (err) { console.error(err); }
+        metrics.value = statsRes.data?.total_treks !== undefined ? statsRes.data : DUMMY_METRICS;
+      } catch (err) { metrics.value = DUMMY_METRICS; }
+      await fetchStaff(); await fetchTreks(); await fetchBookings();
     };
     const fetchUsers = async () => {
-      try { const res = await api.get('/api/admin/users', { params: { search: userSearchQuery.value } }); usersList.value = res.data; }
-      catch (err) { console.error(err); }
+      try { const res = await api.get('/api/admin/users', { params: { search: userSearchQuery.value } }); usersList.value = res.data?.length ? res.data : DUMMY_USERS_ADMIN; }
+      catch (err) { if (!usersList.value.length) usersList.value = DUMMY_USERS_ADMIN; }
     };
 
     const resetStaffForm = () => { isEditingStaff.value = false; Object.assign(staffForm, { id: null, name: '', email: '', password: '', phone: '', experience: 0, certifications: '', emergency_contact: '' }); };
