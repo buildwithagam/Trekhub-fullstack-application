@@ -24,6 +24,7 @@
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
           </svg>
           <p class="text-gray-500 text-sm">{{ loadingMessage }}</p>
+          <p v-if="countdown > 0" class="text-gray-400 text-xs">Timeout in {{ countdown }}s</p>
         </div>
       </div>
     </div>
@@ -67,8 +68,9 @@ export default {
     const notificationCount = store.notificationCount;
     const state  = store.state;
     const toasts = ref([]);
-    const appLoading    = ref(true);
+    const appLoading     = ref(true);
     const loadingMessage = ref('Connecting to server…');
+    const countdown      = ref(0);
 
     const DASHBOARD_ROUTES = ['TrekkerDashboard', 'AdminDashboard', 'StaffDashboard'];
     const isDashboardRoute = computed(() => DASHBOARD_ROUTES.includes(route.name));
@@ -85,47 +87,51 @@ export default {
     };
     const removeToast = (id) => { toasts.value = toasts.value.filter(t => t.id !== id); };
 
+    // Login with a hard timeout so it never hangs forever
+    const loginWithTimeout = (timeoutMs) => {
+      return Promise.race([
+        api.post('/api/auth/login', { email: 'trekker@tma.com', password: 'pass123' }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
+      ]);
+    };
+
     onMounted(async () => {
       window.triggerToast = triggerToast;
 
-      // If already logged in, skip auto-login
+      // Already logged in — go straight to dashboard
       if (store.isAuthenticated.value) {
         appLoading.value = false;
         const role = store.state.user?.role;
-        if (role === 'ADMIN')       router.push({ name: 'AdminDashboard' });
-        else if (role === 'STAFF')  router.push({ name: 'StaffDashboard' });
-        else                        router.push({ name: 'TrekkerDashboard' });
+        if (role === 'ADMIN')      router.push({ name: 'AdminDashboard' });
+        else if (role === 'STAFF') router.push({ name: 'StaffDashboard' });
+        else                       router.push({ name: 'TrekkerDashboard' });
         return;
       }
 
-      // Auto-login as demo trekker
-      loadingMessage.value = 'Waking up server… (may take 30s on first load)';
+      // Attempt 1 — 15s timeout
+      loadingMessage.value = 'Connecting to server…';
       try {
-        const res = await api.post('/api/auth/login', {
-          email: 'trekker@tma.com',
-          password: 'pass123'
-        });
+        const res = await loginWithTimeout(15000);
         store.login(res.data.user, res.data.access_token, res.data.refresh_token);
         appLoading.value = false;
         router.push({ name: 'TrekkerDashboard' });
+        return;
       } catch (e) {
-        // Backend might be cold-starting on Render — retry once after 8s
-        loadingMessage.value = 'Server is waking up, retrying…';
-        setTimeout(async () => {
-          try {
-            const res = await api.post('/api/auth/login', {
-              email: 'trekker@tma.com',
-              password: 'pass123'
-            });
-            store.login(res.data.user, res.data.access_token, res.data.refresh_token);
-            appLoading.value = false;
-            router.push({ name: 'TrekkerDashboard' });
-          } catch (e2) {
-            // Still failing — show login page so user can try manually
-            appLoading.value = false;
-            router.push({ name: 'Login' });
-          }
-        }, 8000);
+        // Attempt 2 — Render cold start, wait 5s then retry with 20s timeout
+        loadingMessage.value = 'Server is waking up, please wait…';
+        await new Promise(r => setTimeout(r, 5000));
+        try {
+          const res = await loginWithTimeout(20000);
+          store.login(res.data.user, res.data.access_token, res.data.refresh_token);
+          appLoading.value = false;
+          router.push({ name: 'TrekkerDashboard' });
+          return;
+        } catch (e2) {
+          // Both failed — show login page
+          appLoading.value = false;
+          router.push({ name: 'Login' });
+          return;
+        }
       }
 
       // Background notification polling
@@ -141,7 +147,7 @@ export default {
       loadNotifications, markRead, handleLogout,
       toasts, removeToast,
       isDashboardRoute, showLegacyNav,
-      appLoading, loadingMessage,
+      appLoading, loadingMessage, countdown,
     };
   }
 };
